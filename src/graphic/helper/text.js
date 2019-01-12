@@ -78,12 +78,12 @@ export function renderText(hostEl, ctx, text, style, rect, prevEl) {
 function renderPlainText(hostEl, ctx, text, style, rect, prevEl) {
     'use strict';
 
+    // Only use cache when the previous el is painted in the method.
     var prevStyle = prevEl && prevEl.style;
-    // Some cache only available on textEl.
-    var isPrevTextEl = prevStyle && prevEl.type === 'text';
+    var checkCache = prevStyle && prevEl.type === 'text' && !prevStyle.rich;
 
     var styleFont = style.font || textContain.DEFAULT_FONT;
-    if (!isPrevTextEl || styleFont !== (prevStyle.font || textContain.DEFAULT_FONT)) {
+    if (!checkCache || styleFont !== (prevStyle.font || textContain.DEFAULT_FONT)) {
         ctx.font = styleFont;
     }
     // Use the final font from context-2d, because the final
@@ -96,11 +96,12 @@ function renderPlainText(hostEl, ctx, text, style, rect, prevEl) {
     }
 
     var textPadding = style.textPadding;
+    var textLineHeight = style.textLineHeight;
 
     var contentBlock = hostEl.__textCotentBlock;
     if (!contentBlock || hostEl.__dirtyText) {
         contentBlock = hostEl.__textCotentBlock = textContain.parsePlainText(
-            text, computedFont, textPadding, style.truncate
+            text, computedFont, textPadding, textLineHeight, style.truncate
         );
     }
 
@@ -145,6 +146,8 @@ function renderPlainText(hostEl, ctx, text, style, rect, prevEl) {
     // Force baseline to be "middle". Otherwise, if using "top", the
     // text will offset downward a little bit in font "Microsoft YaHei".
     ctx.textBaseline = 'middle';
+    // Set text opacity
+    ctx.globalAlpha = style.opacity || 1;
 
     // Always set shadowBlur and shadowOffset to avoid leak from displayable.
     for (var i = 0; i < SHADOW_STYLE_COMMON_PROPS.length; i++) {
@@ -152,7 +155,7 @@ function renderPlainText(hostEl, ctx, text, style, rect, prevEl) {
         var styleProp = propItem[0];
         var ctxProp = propItem[1];
         var val = style[styleProp];
-        if (!isPrevTextEl || val !== prevStyle[styleProp]) {
+        if (!checkCache || val !== prevStyle[styleProp]) {
             ctx[ctxProp] = fixShadow(ctx, ctxProp, val || propItem[2]);
         }
     }
@@ -161,9 +164,9 @@ function renderPlainText(hostEl, ctx, text, style, rect, prevEl) {
     textY += lineHeight / 2;
 
     var textStrokeWidth = style.textStrokeWidth;
-    var textStrokeWidthPrev = isPrevTextEl ? prevStyle.textStrokeWidth : null;
-    var strokeWidthChanged = !isPrevTextEl || textStrokeWidth !== textStrokeWidthPrev;
-    var strokeChanged = !isPrevTextEl || strokeWidthChanged || style.textStroke !== prevStyle.textStroke;
+    var textStrokeWidthPrev = checkCache ? prevStyle.textStrokeWidth : null;
+    var strokeWidthChanged = !checkCache || textStrokeWidth !== textStrokeWidthPrev;
+    var strokeChanged = !checkCache || strokeWidthChanged || style.textStroke !== prevStyle.textStroke;
     var textStroke = getStroke(style.textStroke, textStrokeWidth);
     var textFill = getFill(style.textFill);
 
@@ -176,7 +179,7 @@ function renderPlainText(hostEl, ctx, text, style, rect, prevEl) {
         }
     }
     if (textFill) {
-        if (!isPrevTextEl || style.textFill !== prevStyle.textFill || prevStyle.textBackgroundColor) {
+        if (!checkCache || style.textFill !== prevStyle.textFill || prevStyle.textBackgroundColor) {
             ctx.fillStyle = textFill;
         }
     }

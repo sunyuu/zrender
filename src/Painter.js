@@ -27,8 +27,8 @@ function isLayerValid(layer) {
         return true;
     }
 
-    if (typeof(layer.resize) !== 'function'
-        || typeof(layer.refresh) !== 'function'
+    if (typeof (layer.resize) !== 'function'
+        || typeof (layer.refresh) !== 'function'
     ) {
         return false;
     }
@@ -49,7 +49,7 @@ function isDisplayableCulled(el, width, height) {
 }
 
 function isClipPathChanged(clipPaths, prevClipPaths) {
-    if (clipPaths == prevClipPaths) { // Can both be null or undefined
+    if (clipPaths === prevClipPaths) { // Can both be null or undefined
         return false;
     }
 
@@ -528,8 +528,10 @@ Painter.prototype = {
             }
             el.beforeBrush && el.beforeBrush(ctx);
 
-            el.brush(ctx, scope.prevEl || null);
-            scope.prevEl = el;
+            var keepPrevEl = el.brush(ctx, scope.prevEl || null);
+            if (keepPrevEl !== true) {
+                scope.prevEl = el;
+            }
 
             el.afterBrush && el.afterBrush(ctx);
         }
@@ -858,7 +860,7 @@ Painter.prototype = {
             domRoot.style.display = '';
 
             // 优化没有实际改变的resize
-            if (this._width != width || height != this._height) {
+            if (this._width !== width || height !== this._height) {
                 domRoot.style.width = width + 'px';
                 domRoot.style.height = height + 'px';
 
